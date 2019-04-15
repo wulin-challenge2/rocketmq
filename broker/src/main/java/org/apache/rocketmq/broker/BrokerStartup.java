@@ -55,7 +55,10 @@ public class BrokerStartup {
     public static InternalLogger log;
 
     public static void main(String[] args) {
+    	System.out.println("user.home : "+System.getProperty("user.home"));
+    	System.out.println("ROCKETMQ_HOME : "+System.getenv("ROCKETMQ_HOME"));
         start(createBrokerController(args));
+        System.out.println("broker启动成功!");
     }
 
     public static BrokerController start(BrokerController controller) {
