@@ -31,6 +31,8 @@ public class TransactionListenerImpl implements TransactionListener {
 
     @Override
     public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+    	String name = Thread.currentThread().getName();
+    	System.out.println("executeLocalTransaction: "+name);
         int value = transactionIndex.getAndIncrement();
         int status = value % 3;
         localTrans.put(msg.getTransactionId(), status);
@@ -39,7 +41,10 @@ public class TransactionListenerImpl implements TransactionListener {
 
     @Override
     public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+    	String name = Thread.currentThread().getName();
+    	System.out.println("checkLocalTransaction: "+name);
         Integer status = localTrans.get(msg.getTransactionId());
+        status = 1;
         if (null != status) {
             switch (status) {
                 case 0:

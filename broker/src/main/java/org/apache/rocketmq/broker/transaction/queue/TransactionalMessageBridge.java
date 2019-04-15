@@ -186,6 +186,15 @@ public class TransactionalMessageBridge {
         return foundList;
     }
 
+    /**
+     * 这里是事务消息与非事务消息发送流程的主要区别,如果是事务消息则备份消息的原主题与原消息消费队列,然后将主题
+     * 变更为RMQ_SYS_TRANS_HALFTOPIC,消费队列变更为0,然后消息按照普通消息存储在commitlog文件进而
+     * 转发到RMQSYS_TRANS_HALF_TOPIC主题对应的消息消费队列.也就是说,事务消息在未提交之前并不会存入消息原有主题,
+     * 自然也不会被消费者消费.既然变更了主题,RocketMQ通常会采用定时任务(单独的线程)去消费该主题,
+     * 然后将该消息在满足特定条件下恢复消息主题,进而被消费者消费.
+     * @param messageInner
+     * @return
+     */
     public PutMessageResult putHalfMessage(MessageExtBrokerInner messageInner) {
         return store.putMessage(parseHalfMessageInner(messageInner));
     }

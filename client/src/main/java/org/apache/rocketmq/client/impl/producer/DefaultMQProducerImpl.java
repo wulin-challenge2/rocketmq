@@ -706,6 +706,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     msgBodyCompressed = true;
                 }
 
+                /*
+                 * 在消息发送之前,如果消息为prepare类型,则设置消息标准为prepare消息类型,方便消息服务器正确识别事务类型的消息.
+                 */
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
                     sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
@@ -1142,6 +1145,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
+    /**
+     * This method is used to send transactional messages.
+     * 
+     * <p> 这个方法被用于发送事务消息
+     * @param msg Transactional message to send.
+     * 
+     * <p> 要发送的事务消息
+     * 
+     * @param arg Argument used along with local transaction executor.
+     * 
+     * <p> 与本地事务一起被执行的应用程序参数
+     * @return Transaction result. - 事务结果
+     * 
+     * @throws MQClientException
+     */
     public TransactionSendResult sendMessageInTransaction(final Message msg,
                                                           final LocalTransactionExecuter localTransactionExecuter, final Object arg)
         throws MQClientException {
@@ -1149,8 +1167,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == localTransactionExecuter && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
         }
+        
+        //验证消息
         Validators.checkMessage(msg, this.defaultMQProducer);
 
+        /*
+         * 首先为消息添加属性,TRAN_MSG和PGROUP,分别表示消息为prepare消息、消息所属消息生产者组.
+         * 设置消息生产者组的目的是在查询事务消息本地事务状态时,从该生产者组中随机选择一个消息生产者即可,
+         * 然后通过同步调用方式向RocketMQ发送消息
+         */
         SendResult sendResult = null;
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
@@ -1160,9 +1185,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("send message Exception", e);
         }
 
+        /*
+         * 根据消息发送结果执行相应 的操作 。
+         */
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         switch (sendResult.getSendStatus()) {
+        
+        	/*
+        	 * 如果消息发送成功,则执行TransactionListener#executeLocalTransaction方法,该方法的职责是记录事务消息的
+        	 * 本地事务状态,例如可以通过将消息唯一ID存储在数据中,并且该方法与业务代码处于同一个事务,与业务事务要么一起成功,要么一起失败.
+        	 * 这里是事务消息设计的关键理念之一,为后续的事务状态回查提供唯一依据.
+        	 */
             case SEND_OK: {
                 try {
                     if (sendResult.getTransactionId() != null) {
@@ -1196,6 +1230,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             case FLUSH_DISK_TIMEOUT:
             case FLUSH_SLAVE_TIMEOUT:
             case SLAVE_NOT_AVAILABLE:
+            	
+            	/*
+            	 * 如果消息发送失败,则设置本次事务状态为
+            	 */
                 localTransactionState = LocalTransactionState.ROLLBACK_MESSAGE;
                 break;
             default:
@@ -1203,6 +1241,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         try {
+        	
+        	/*
+        	 * 结束事务 。 根据第二步返回的事务状态执行提交、 回 滚或暂时不处理事务 。
+        	 * 注意: 由于this.endTransaction的执行,其业务事务并没有提交,故在使用事务消息{@link TransactionListener#execute}方法
+        	 * 除了记录事务消息状态后,应该返回LocalTransaction.UNKNOW,事务消息的提交与回滚通过下面提到的事务消息状态回查时再决定是否
+        	 * 提交或回滚.
+        	 */
             this.endTransaction(sendResult, localTransactionState, localException);
         } catch (Exception e) {
             log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
@@ -1226,6 +1271,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return send(msg, this.defaultMQProducer.getSendMsgTimeout());
     }
 
+    /**
+     * 根据消息所属的消息队列获取Broker的IP与端口信息,然后发送结束事务命令,其关键就是根据本地执行事务的状态分别发送提交、
+     * 回滚或"不作为"的命令.Broker服务端的结束事务处理器为:EndTransactionProcessor.
+     * 
+     * @param sendResult
+     * @param localTransactionState
+     * @param localException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws UnknownHostException
+     */
     public void endTransaction(
         final SendResult sendResult,
         final LocalTransactionState localTransactionState,

@@ -158,24 +158,32 @@ public class BrokerConfig {
     /**
      * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
      * that can be checked.
+     * 
+     * <p> 首先,事务消息将在最短的实际内被检测,但这个消息只有超过这个时间间隔才能被检测,默认为 6s
      */
     @ImportantField
     private long transactionTimeOut = 6 * 1000;
 
     /**
      * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     * 
+     * 事务消息被检测的最大次数,若果一条消息的检测次数超过这个值,则这条消息将被丢弃
      */
     @ImportantField
     private int transactionCheckMax = 15;
 
     /**
      * Transaction message check interval.
+     * 
+     * 事务消息检测间隔时间,默认1分钟
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
 
     /**
      * Acl feature switch
+     * 
+     * <p> Acl 特性开关
      */
     @ImportantField
     private boolean aclEnable = false;

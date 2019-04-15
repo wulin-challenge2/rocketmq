@@ -57,13 +57,27 @@ public interface TransactionalMessageService {
     /**
      * Traverse uncommitted/unroll back half message and send check back request to producer to obtain transaction
      * status.
+     * 
+     * 通过未提交/未回滚的后半部分消息向生产者发送请求获得事务状态
      *
      * @param transactionTimeout The minimum time of the transactional message to be checked firstly, one message only
      * exceed this time interval that can be checked.
+     * 
+     * <p> 首先,事务消息将在最小时间内被检测,但该事务消息只有超过这个时间间隔才能被检测
+     * 
      * @param transactionCheckMax The maximum number of times the message was checked, if exceed this value, this
      * message will be discarded.
+     * 
+     * <p> 事务消息检测的最大次数,如果超过这个值,该消息将被丢弃
+     * 
      * @param listener When the message is considered to be checked or discarded, the relative method of this class will
      * be invoked.
+     * 
+     * <p> 当一个消息被认为将要检测或者丢弃,这个类的相关方法将会被调用
+     * 
+     * <p> 注意: 当想要让一个事务消息发送成功后立即回调检测方法,可以多个设置 transactionTimeOut: 事务过期时间, 
+     * transactionCheckInterval : 事务检测时间间隔, 或者构建事务消息时设置属性
+     * MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS,该属性的意思是在设置时间内该定时器不会向生产者发送检测请求
      */
     void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionalMessageCheckListener listener);
 

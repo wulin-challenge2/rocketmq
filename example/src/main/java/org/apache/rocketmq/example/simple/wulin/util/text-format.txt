@@ -1,0 +1,5 @@
+事务 回 查 命 令的最终处理者为 ClientRemotingProssor 的 processRequest 方法，最
+终将任务提交 到 TransactionMQProducer 的 线程池中执行，最终调用应用程序实现的
+TransactionListener 的 checkLoca!Transaction 方法 ，返回 事务状态 。 如果事务状态为 Loca lTransactionState#COMMIT_MESSAGE ， 则向 消息服务器发送提交事务消息命令 ；如果事务
+状态为 Loca!TransactionState#ROLLBACK MESSAGE ，则向 Broker 服务器发送回滚事务
+操作； 如果事务状态为 UNOWN ，则服务端会忽略此次提交 。

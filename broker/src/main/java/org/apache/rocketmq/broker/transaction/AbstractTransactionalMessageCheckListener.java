@@ -52,6 +52,18 @@ public abstract class AbstractTransactionalMessageCheckListener {
         this.brokerController = brokerController;
     }
 
+    /**
+     * <p> 1. 首先构建事务状态回查请求消息,核心参数包含消息offsetld、消息ID(索引)、消息事务ID、事务消息队列中的偏移量、消息主题、消息队列.
+     * 然后根据消息的生产者组,从中随机选择一个消息发送者.最后向消息发送者发送事务回查命令.
+     * 
+     * <p> 2. 事务回查命令的最终处理者为ClientRemotingProssor的processRequest方法,最终将任务提交到TransactionMQProducer的
+     * 线程池中执行,最终调用应用程序实现的TransactionListener的checkLoca!Transaction方法,返回事务状态.
+     * 如果事务状态为LocalTransactionState#COMMIT_MESSAGE,则向消息服务器发送提交事务消息命令；
+     * 如果事务状态为Loca!TransactionState#ROLLBACKMESSAGE,则向Broker服务器发送回滚事务操作；如果事务状态为UNOWN,
+     * 则服务端会忽略此次提交.
+     * @param msgExt
+     * @throws Exception
+     */
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
@@ -71,6 +83,15 @@ public abstract class AbstractTransactionalMessageCheckListener {
         }
     }
 
+    /**
+     * 发送具体的事务回查命令,使用线程池来异步发送回查消息,为了回查消费进度保存的简化,只要发送了回查消息,当前回查进度会向前推动,
+     * 如果回查失败,上一步骤新增的消息将可以再次发送回查消息,那如果回查消息发送成功,会不会下一次又重复发送回查消息呢？
+     * 这个可以根据OP队列中的消息来判断是否重复,如果回查消息发送成功并且消息服务器完成提交或回滚操作,这条消息会发送到OP队列中,
+     * 然后首先会通过fil!OpRemoveMap根据处理进度获取一批已处理的消息,来与消息判断是否重复,由于fillopRemoveMap一次只拉32条消息,
+     * 那又如何保证一定能拉取到与当前消息的处理记录呢？如果此批消息最后一条未超过事务延迟消息,则继续拉取更多消息进行判断,
+     * OP队列也会随着回查进度的推进而推进.
+     * @param msgExt
+     */
     public void resolveHalfMsg(final MessageExt msgExt) {
         executorService.execute(new Runnable() {
             @Override

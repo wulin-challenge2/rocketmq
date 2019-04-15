@@ -43,6 +43,10 @@ public class MessageConst {
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
     public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";
     public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
+    
+    /**
+     * 属性免除检测时间
+     */
     public static final String PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS = "CHECK_IMMUNITY_TIME_IN_SECONDS";
 
     public static final String KEY_SEPARATOR = " ";
