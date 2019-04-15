@@ -28,15 +28,16 @@ set CLASSPATH=.;%BASE_DIR%conf;%CLASSPATH%
 rem ===========================================================================================
 rem  JVM Configuration
 rem ===========================================================================================
-set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g -Xmn1g"
+set "JAVA_OPT=%JAVA_OPT% -server -Xms512m -Xmx512m -Xmn256m"
 set "JAVA_OPT=%JAVA_OPT% -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0 -XX:SurvivorRatio=8"
 set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:%USERPROFILE%\mq_gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
 set "JAVA_OPT=%JAVA_OPT% -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
 set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
 set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
-set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
+set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=512m"
 set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
 set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib"
+set "JAVA_OPT=%JAVA_OPT% -Duser.home=%USER_HOME%"
 set "JAVA_OPT=%JAVA_OPT% -cp %CLASSPATH%"
 
 "%JAVA%" %JAVA_OPT% %*

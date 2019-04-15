@@ -26,12 +26,13 @@ for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
 
 set CLASSPATH=.;%BASE_DIR%conf;%CLASSPATH%
 
-set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g -Xmn1g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
+set "JAVA_OPT=%JAVA_OPT% -server -Xms256m -Xmx512m -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
 set "JAVA_OPT=%JAVA_OPT% -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
 set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:"%USERPROFILE%\rmq_srv_gc.log" -XX:+PrintGCDetails"
 set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
 set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages"
 set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib"
+set "JAVA_OPT=%JAVA_OPT% -Duser.home=%USER_HOME%"
 set "JAVA_OPT=%JAVA_OPT% -cp "%CLASSPATH%""
 
 "%JAVA%" %JAVA_OPT% %*
